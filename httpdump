@@ -1,0 +1,50 @@
+#!/bin/python
+from twisted.web.server import Site
+from twisted.web.resource import Resource
+from twisted.internet import reactor
+from termcolor import colored
+from optparse import OptionParser
+
+
+class GenericResource(Resource):
+
+    def render_GET(self, request):
+        return self._log_request("GET", request)
+
+    def render_POST(self, request):
+        return self._log_request("POST", request)
+
+    def render_PUT(self, request):
+        return self._log_request("PUT", request)
+
+    def _log_request(self,method, request):
+        print "-"*30
+        print colored("\033[1mHTTP {} recevied from {}\033[0m".format(
+                method, request.getHost()), "red")
+
+        print "\033[1mHeaders ...\033[0m"
+        for k, v in request.getAllHeaders().items():
+            print "    {} = {}".format(colored(k, "blue"),colored(v, "green"))
+
+        print "\033[1mArgs ...\033[0m"
+        for k, v in request.args.items():
+            print "    {}: {}".format(colored(k, "blue"), colored(v, "green"))
+
+        return "OK"
+
+class RootResource(Resource):
+    def getChild(self, name, request):
+        return GenericResource()
+
+parser = OptionParser()
+parser.add_option('-p', dest='port', default='8080')
+
+if __name__ == "__main__":
+    (options, args) = parser.parse_args()
+    root = RootResource()
+    factory = Site(root)
+    reactor.listenTCP(int(options.port), factory)
+    print colored(
+        "    Starting HTTPBing on port {!s}".format(options.port), "yellow")
+    reactor.run()
+
